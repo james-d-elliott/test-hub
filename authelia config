@@ -1,0 +1,220 @@
+##########################################################
+#                                                        #
+#	     Authilia Config example1.com on Server 1        #
+# 														 #
+##########################################################
+
+theme: dark
+jwt_secret: "xy"
+default_redirection_url: https://example1.com/
+
+server:
+  host: 0.0.0.0
+  port: 9091
+  path: ""
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+  enable_pprof: false
+  enable_expvars: false
+  disable_healthcheck: false
+  tls:
+    key: ""
+    certificate: ""
+
+log:
+  level: info
+
+totp:
+  disable: true
+  issuer: example1.com
+  period: 30
+  skew: 1
+
+webauthn:
+  disable: false
+  display_name: example1 Auth
+  attestation_conveyance_preference: indirect
+  user_verification: preferred
+  timeout: 60s
+
+
+authentication_backend:
+  disable_reset_password: true
+  refresh_interval: 5m
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      key_length: 32
+      salt_length: 16
+      memory: 1024
+      parallelism: 8
+
+access_control:
+  default_policy: bypass
+  rules:
+    ## bypass rule
+    - domain: "app.example1.com"
+      policy: two_factor
+      resources:
+        - "^/admin.*$"
+    - domain: "example1.com"
+      policy: two_factor
+      resources:
+        - "^/login.*$"
+        - "^/wp-admin.*$"
+        - "^/wp-login.*$"
+
+session:
+  name: example1_auth_session
+  domain: example1.com
+  same_site: lax
+  secret: "xy"
+  expiration: 1h
+  inactivity: 5m
+  remember_me_duration: 2M
+#  redis:
+#    host: redis
+#    port: 6379
+#    password: "YOUR_REDIS_PASSWORD"
+#    database_index: 0
+#    maximum_active_connections: 10
+#    minimum_idle_connections: 0
+
+regulation:
+  max_retries: 3
+  find_time: 10m
+  ban_time: 12h
+
+storage:
+  encryption_key: "xy"
+  local:
+    path: /config/db.sqlite3
+  
+notifier:
+  disable_startup_check: false
+  smtp:
+    username: server@skysmtp.ch
+    password: "xy"
+    host: mail.example.com
+    port: 587
+    sender: "example1 Auth <xy@xy.com>"
+    identifier: localhost
+    subject: "[example1 Auth] {title}"
+    startup_check_address: test@authelia.com
+    disable_require_tls: false
+    disable_html_emails: false
+    tls:
+      skip_verify: false
+      minimum_version: TLS1.2
+
+
+
+##########################################################
+#                                                        #
+#	     Authilia Config example2.com on Server 1        #
+# 														 #
+##########################################################
+
+
+theme: dark
+jwt_secret: "xy"
+default_redirection_url: https://example2.com/
+
+server:
+  host: 0.0.0.0
+  port: 9091
+  path: ""
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+  enable_pprof: false
+  enable_expvars: false
+  disable_healthcheck: false
+  tls:
+    key: ""
+    certificate: ""
+
+log:
+  level: debug
+
+totp:
+  disable: true
+  issuer: example2.com
+  period: 30
+  skew: 1
+
+webauthn:
+  disable: false
+  display_name: example2 Auth
+  attestation_conveyance_preference: indirect
+  user_verification: preferred
+  timeout: 60s
+
+
+authentication_backend:
+  disable_reset_password: true
+  refresh_interval: 5m
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      key_length: 32
+      salt_length: 16
+      memory: 1024
+      parallelism: 8
+
+access_control:
+  default_policy: bypass
+  rules:
+    ## bypass rule
+    - domain: "example2.com"
+      policy: two_factor
+      resources:
+        - "^/login.*$"
+        - "^/wp-admin.*$"
+        - "^/wp-login.*$"
+
+session:
+  name: example2_auth_session
+  domain: example2.ch
+  same_site: lax
+  secret: "xy"
+  expiration: 1h
+  inactivity: 5m
+  remember_me_duration: 2M
+#  redis:
+#    host: redis
+#    port: 6379
+#    password: "YOUR_REDIS_PASSWORD"
+#    database_index: 0
+#    maximum_active_connections: 10
+#    minimum_idle_connections: 0
+
+regulation:
+  max_retries: 3
+  find_time: 10m
+  ban_time: 12h
+
+storage:
+  encryption_key: "xy"
+  local:
+    path: /config/db.sqlite3
+  
+notifier:
+  disable_startup_check: false
+  smtp:
+    username: server@skysmtp.ch
+    password: "xy"
+    host: mail.example.com
+    port: 587
+    sender: "example2 Auth <xy@example.com>"
+    identifier: localhost
+    subject: "[example2 Auth] {title}"
+    startup_check_address: test@authelia.com
+    disable_require_tls: false
+    disable_html_emails: false
+    tls:
+      skip_verify: false
+      minimum_version: TLS1.2
