@@ -1,0 +1,118 @@
+##example1.com on server 2 ##
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+
+    server_name example1.com;
+
+    ssl_certificate /etc/nginx/ssl/live/example1.com/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/live/example1.com/privkey.pem;
+    ssl_session_cache builtin:1000;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+    ssl_session_tickets off;
+    ssl_ecdh_curve secp384r1;
+    resolver 1.1.1.1 1.0.0.1 valid=300s;
+    resolver_timeout 10s;
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1000;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/xml application/xml text/javascript application/x-javascript image/svg+xml;
+    gzip_disable "MSIE [1-6]\.";
+
+    ####################################################################################################################################
+
+    set $upstream_authelia https://auth.example1.com/api/verify;
+    
+    location /authelia {
+        internal;
+        proxy_pass_request_body off;
+        proxy_pass $upstream_authelia;
+        proxy_set_header Content-Length "";
+    
+        # Timeout if the real server is dead
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+    
+        # [REQUIRED] Needed by Authelia to check authorizations of the resource.
+        # Provide either X-Original-URL and X-Forwarded-Proto or
+        # X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-Uri or both.
+        # Those headers will be used by Authelia to deduce the target url of the user.
+        # Basic Proxy Config
+        client_body_buffer_size 128k;
+        proxy_set_header Host $host;
+        proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Method $request_method;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Uri $request_uri;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Ssl on;
+        proxy_redirect  http://  $scheme://;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_cache_bypass $cookie_session;
+        proxy_no_cache $cookie_session;
+        proxy_buffers 4 32k;
+    
+        # Advanced Proxy Config
+        send_timeout 5m;
+        proxy_read_timeout 240;
+        proxy_send_timeout 240;
+        proxy_connect_timeout 240;
+}       
+
+    location / {
+    set $upstream_example1 http://172.19.0.51:80;
+    proxy_pass $upstream_example1;
+
+    #auth.conf
+    auth_request /authelia;
+    auth_request_set $target_url https://$http_host$request_uri;
+    auth_request_set $user $upstream_http_remote_user;
+    auth_request_set $groups $upstream_http_remote_groups;
+    auth_request_set $name $upstream_http_remote_name;
+    auth_request_set $email $upstream_http_remote_email;
+    proxy_set_header Remote-User $user;
+    proxy_set_header Remote-Groups $groups;
+    proxy_set_header Remote-Name $name;
+    proxy_set_header Remote-Email $email;
+    error_page 401 =302 https://auth.example1.com/?rd=$target_url;
+
+    #proxy.conf
+    client_body_buffer_size 128k;
+    proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+    
+    # Advanced Proxy Config
+    send_timeout 5m;
+    proxy_read_timeout 360;
+    proxy_send_timeout 360;
+    proxy_connect_timeout 360;
+    
+    # Basic Proxy Config
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Forwarded-Uri $request_uri;
+    proxy_set_header X-Forwarded-Ssl on;
+    proxy_redirect  http://  $scheme://;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_cache_bypass $cookie_session;
+    proxy_no_cache $cookie_session;
+    proxy_buffers 64 256k;
+    proxy_buffer_size 128k;
+    proxy_busy_buffers_size 256k;
+    
+    # If behind reverse proxy, forwards the correct IP
+    set_real_ip_from 10.0.0.0/16;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+  }
+
+}
