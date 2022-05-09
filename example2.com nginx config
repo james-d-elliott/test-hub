@@ -16,7 +16,7 @@ server {
 
     ##Location##
 
-    set $upstream_authelia-skyflix https://auth.example2.com/api/verify;
+    set $upstream_example2 https://auth.example2.com/api/verify;
 
     location /authelia-skyflix {
         internal;
